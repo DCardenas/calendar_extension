@@ -4,7 +4,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         handleUploadEvents(request.events)
             .then(() => sendResponse({ success: true }))
             .catch((err) => {
-            console.error("Upload Error:", err);
+            console.error('Upload Error:', err);
             sendResponse({ success: false, error: err.message });
         });
         // Return true to indicate we will sendResponse asynchronously
@@ -16,7 +16,8 @@ async function handleUploadEvents(events) {
     const token = await new Promise((resolve, reject) => {
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError || !token) {
-                reject(new Error(chrome.runtime.lastError?.message || 'Authentication failed. Make sure your OAuth Client ID is configured.'));
+                reject(new Error(chrome.runtime.lastError?.message ||
+                    'Authentication failed. Make sure your OAuth Client ID is configured.'));
             }
             else {
                 resolve(token);
@@ -28,10 +29,10 @@ async function handleUploadEvents(events) {
         const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(event)
+            body: JSON.stringify(event),
         });
         if (!response.ok) {
             const errorText = await response.text();
@@ -39,6 +40,6 @@ async function handleUploadEvents(events) {
             throw new Error(`Calendar API Error: ${response.statusText} - ${errorText}`);
         }
         // Brief delay to mitigate rate limiting if uploading multiple events
-        await new Promise(res => setTimeout(res, 250));
+        await new Promise((res) => setTimeout(res, 250));
     }
 }
