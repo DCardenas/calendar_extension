@@ -23,6 +23,35 @@ class QueueManager {
             this.processNext();
         }
     }
+    clearCompletedTasks() {
+        this.tasks = this.tasks.filter((task) => {
+            if (task.status === 'success' || task.status === 'error') {
+                if (task.element) {
+                    task.element.remove();
+                }
+                return false;
+            }
+            return true;
+        });
+    }
+    removeTask(taskId) {
+        const index = this.tasks.findIndex((t) => t.id === taskId);
+        if (index !== -1) {
+            const task = this.tasks[index];
+            if (task.status === 'success' || task.status === 'error') {
+                if (task.element) {
+                    task.element.remove();
+                }
+                this.tasks.splice(index, 1);
+            }
+        }
+    }
+    showRefreshButton() {
+        const btn = document.getElementById('ics-refresh-calendar');
+        if (btn) {
+            btn.classList.add('visible');
+        }
+    }
     async processNext() {
         if (this.isProcessing)
             return;
@@ -49,6 +78,7 @@ class QueueManager {
                 chrome.runtime.sendMessage({ action: 'UPLOAD_EVENTS', events }, (response) => {
                     if (response?.success) {
                         this.updateTask(task, 'success', `Added ${events.length} events`);
+                        this.showRefreshButton();
                     }
                     else {
                         this.updateTask(task, 'error', response?.error || 'Upload failed');
@@ -73,6 +103,19 @@ class QueueManager {
                 messageEl.textContent = message;
             if (status === 'success' || status === 'error') {
                 task.element.classList.add('completed');
+                // Ensure remove button exists (handles unrefreshed pages)
+                const actionEl = task.element.querySelector('.task-action');
+                if (actionEl && !actionEl.querySelector('.task-remove-btn')) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'task-remove-btn';
+                    removeBtn.title = 'Remove';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.removeTask(task.id);
+                    });
+                    actionEl.appendChild(removeBtn);
+                }
             }
         }
     }
@@ -88,9 +131,17 @@ class QueueManager {
                 <div class="task-name">${task.file.name}</div>
                 <div class="task-message">${task.message}</div>
             </div>
-            <div class="task-status pending"></div>
+            <div class="task-action">
+                <div class="task-status pending"></div>
+                <button class="task-remove-btn" title="Remove">×</button>
+            </div>
         `;
         task.element = taskEl;
+        const removeBtn = taskEl.querySelector('.task-remove-btn');
+        removeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeTask(task.id);
+        });
         container.appendChild(taskEl);
     }
     showPanel() {
@@ -156,21 +207,39 @@ function injectUI() {
         document.body.appendChild(dropZone);
     }
     // Queue Panel
-    if (!document.getElementById('ics-queue-panel')) {
-        const queuePanel = document.createElement('div');
+    let queuePanel = document.getElementById('ics-queue-panel');
+    if (!queuePanel) {
+        queuePanel = document.createElement('div');
         queuePanel.id = 'ics-queue-panel';
+        document.body.appendChild(queuePanel);
+    }
+    // Update/Set innerHTML to ensure latest header
+    if (!queuePanel.querySelector('#ics-clear-completed')) {
         queuePanel.innerHTML = `
             <div class="queue-header">
-                <h3>Upload Queue</h3>
+                <div class="header-main">
+                    <h3>Upload Queue</h3>
+                    <button id="ics-clear-completed" title="Clear completed tasks">Clear</button>
+                    <button id="ics-refresh-calendar" title="Refresh page to see new events">Sync</button>
+                </div>
                 <button id="ics-queue-close">×</button>
             </div>
             <div id="ics-queue-list"></div>
         `;
-        document.body.appendChild(queuePanel);
         document
             .getElementById('ics-queue-close')
             ?.addEventListener('click', () => {
-            queuePanel.classList.remove('visible');
+            queuePanel?.classList.remove('visible');
+        });
+        document
+            .getElementById('ics-clear-completed')
+            ?.addEventListener('click', () => {
+            queueManager.clearCompletedTasks();
+        });
+        document
+            .getElementById('ics-refresh-calendar')
+            ?.addEventListener('click', () => {
+            window.location.reload();
         });
     }
     // Toast
