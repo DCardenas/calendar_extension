@@ -2,6 +2,7 @@
 class QueueManager {
     tasks = [];
     isProcessing = false;
+    needsSync = false;
     addFiles(files) {
         const newTasks = [];
         for (let i = 0; i < files.length; i++) {
@@ -38,7 +39,7 @@ class QueueManager {
         const index = this.tasks.findIndex((t) => t.id === taskId);
         if (index !== -1) {
             const task = this.tasks[index];
-            if (task.status === 'success' || task.status === 'error') {
+            if (task.status !== 'processing') {
                 if (task.element) {
                     task.element.remove();
                 }
@@ -47,6 +48,7 @@ class QueueManager {
         }
     }
     showRefreshButton() {
+        this.needsSync = true;
         const btn = document.getElementById('ics-refresh-calendar');
         if (btn) {
             btn.classList.add('visible');
@@ -97,25 +99,35 @@ class QueueManager {
         if (task.element) {
             const statusEl = task.element.querySelector('.task-status');
             const messageEl = task.element.querySelector('.task-message');
+            const removeBtn = task.element.querySelector('.task-remove-btn');
             if (statusEl)
                 statusEl.className = `task-status ${status}`;
             if (messageEl)
                 messageEl.textContent = message;
-            if (status === 'success' || status === 'error') {
-                task.element.classList.add('completed');
+            if (removeBtn) {
+                removeBtn.disabled = status === 'processing';
+            }
+            else {
                 // Ensure remove button exists (handles unrefreshed pages)
                 const actionEl = task.element.querySelector('.task-action');
-                if (actionEl && !actionEl.querySelector('.task-remove-btn')) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'task-remove-btn';
-                    removeBtn.title = 'Remove';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.addEventListener('click', (e) => {
+                if (actionEl) {
+                    const newBtn = document.createElement('button');
+                    newBtn.className = 'task-remove-btn';
+                    newBtn.title = 'Remove';
+                    newBtn.innerHTML = '×';
+                    newBtn.disabled = status === 'processing';
+                    newBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.removeTask(task.id);
                     });
-                    actionEl.appendChild(removeBtn);
+                    actionEl.appendChild(newBtn);
                 }
+            }
+            if (status === 'success' || status === 'error') {
+                task.element.classList.add('completed');
+            }
+            else {
+                task.element.classList.remove('completed');
             }
         }
     }
@@ -230,6 +242,9 @@ function injectUI() {
             .getElementById('ics-queue-close')
             ?.addEventListener('click', () => {
             queuePanel?.classList.remove('visible');
+            if (queueManager.needsSync) {
+                showSyncToast();
+            }
         });
         document
             .getElementById('ics-clear-completed')
@@ -242,12 +257,35 @@ function injectUI() {
             window.location.reload();
         });
     }
-    // Toast
-    if (!document.getElementById('ics-toast')) {
-        const toast = document.createElement('div');
-        toast.id = 'ics-toast';
-        document.body.appendChild(toast);
+    // Sync Toast (Top)
+    if (!document.getElementById('ics-sync-toast')) {
+        const syncToast = document.createElement('div');
+        syncToast.id = 'ics-sync-toast';
+        syncToast.innerHTML = `
+            <div class="sync-content">
+                <span class="sync-icon">🔔</span>
+                <span class="sync-message">Sync required to see your new events.</span>
+                <div class="sync-actions">
+                    <button id="ics-sync-now">Sync Now</button>
+                    <button id="ics-sync-dismiss">Dismiss</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(syncToast);
+        document.getElementById('ics-sync-now')?.addEventListener('click', () => {
+            window.location.reload();
+        });
+        document
+            .getElementById('ics-sync-dismiss')
+            ?.addEventListener('click', () => {
+            syncToast.classList.remove('visible');
+        });
     }
+}
+function showSyncToast() {
+    const toast = document.getElementById('ics-sync-toast');
+    if (toast)
+        toast.classList.add('visible');
 }
 function showToast(message, type = 'info') {
     const toast = document.getElementById('ics-toast');
