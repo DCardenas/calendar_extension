@@ -34,16 +34,18 @@ class QueueManager {
             }
             return true;
         });
+        this.updateHeaderVisibility();
     }
     removeTask(taskId) {
         const index = this.tasks.findIndex((t) => t.id === taskId);
         if (index !== -1) {
             const task = this.tasks[index];
-            if (task.status !== 'processing') {
+            if (task.status === 'success' || task.status === 'error') {
                 if (task.element) {
                     task.element.remove();
                 }
                 this.tasks.splice(index, 1);
+                this.updateHeaderVisibility();
             }
         }
     }
@@ -52,6 +54,13 @@ class QueueManager {
         const btn = document.getElementById('ics-refresh-calendar');
         if (btn) {
             btn.classList.add('visible');
+        }
+    }
+    updateHeaderVisibility() {
+        const clearBtn = document.getElementById('ics-clear-completed');
+        if (clearBtn) {
+            const hasCompleted = this.tasks.some((t) => t.status === 'success' || t.status === 'error');
+            clearBtn.style.display = hasCompleted ? 'inline-block' : 'none';
         }
     }
     async processNext() {
@@ -97,29 +106,26 @@ class QueueManager {
         task.status = status;
         task.message = message;
         if (task.element) {
-            const statusEl = task.element.querySelector('.task-status');
             const messageEl = task.element.querySelector('.task-message');
-            const removeBtn = task.element.querySelector('.task-remove-btn');
-            if (statusEl)
-                statusEl.className = `task-status ${status}`;
+            const statusBtn = task.element.querySelector('.task-status-btn');
             if (messageEl)
                 messageEl.textContent = message;
-            if (removeBtn) {
-                removeBtn.disabled = status === 'processing';
+            if (statusBtn) {
+                statusBtn.className = `task-status-btn ${status}`;
+                statusBtn.disabled = status === 'pending' || status === 'processing';
             }
             else {
-                // Ensure remove button exists (handles unrefreshed pages)
+                // Ensure status button exists (handles unrefreshed pages)
                 const actionEl = task.element.querySelector('.task-action');
                 if (actionEl) {
                     const newBtn = document.createElement('button');
-                    newBtn.className = 'task-remove-btn';
-                    newBtn.title = 'Remove';
-                    newBtn.innerHTML = '×';
-                    newBtn.disabled = status === 'processing';
+                    newBtn.className = `task-status-btn ${status}`;
+                    newBtn.disabled = status === 'pending' || status === 'processing';
                     newBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.removeTask(task.id);
                     });
+                    actionEl.innerHTML = ''; // Clear old content if any
                     actionEl.appendChild(newBtn);
                 }
             }
@@ -129,6 +135,7 @@ class QueueManager {
             else {
                 task.element.classList.remove('completed');
             }
+            this.updateHeaderVisibility();
         }
     }
     renderTask(task) {
@@ -144,13 +151,12 @@ class QueueManager {
                 <div class="task-message">${task.message}</div>
             </div>
             <div class="task-action">
-                <div class="task-status pending"></div>
-                <button class="task-remove-btn" title="Remove">×</button>
+                <button class="task-status-btn pending" title="Clear task" disabled></button>
             </div>
         `;
         task.element = taskEl;
-        const removeBtn = taskEl.querySelector('.task-remove-btn');
-        removeBtn?.addEventListener('click', (e) => {
+        const statusBtn = taskEl.querySelector('.task-status-btn');
+        statusBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.removeTask(task.id);
         });
@@ -231,7 +237,7 @@ function injectUI() {
             <div class="queue-header">
                 <div class="header-main">
                     <h3>Upload Queue</h3>
-                    <button id="ics-clear-completed" title="Clear completed tasks">Clear</button>
+                    <button id="ics-clear-completed" title="Clear completed tasks" style="display: none;">Clear</button>
                     <button id="ics-refresh-calendar" title="Refresh page to see new events">Sync</button>
                 </div>
                 <button id="ics-queue-close">×</button>
