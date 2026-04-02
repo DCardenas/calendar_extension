@@ -37,4 +37,4 @@ We do not use your data for serving advertisements.
    If you have any questions, concerns, or requests regarding this Privacy Policy or how your data is handled, please contact us at:
    Daniel Cardenas
    cardenas.danielr@gmail.com
-   https://www.danielcardenas.net/dropply/privacy-policy
+   https://DCardenas.github.io/calendar_extension/privacy.html

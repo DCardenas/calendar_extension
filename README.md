@@ -71,4 +71,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-Created with ❤️ by Daniel Cardenas | [danielcardenas.net](https://www.danielcardenas.net/dropply)
+Created with ❤️ by Daniel Cardenas | [DCardenas.github.io](https://DCardenas.github.io/calendar_extension/)
