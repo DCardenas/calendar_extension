@@ -68,6 +68,13 @@ class QueueManager {
     }
   }
 
+  showRefreshButton() {
+    const btn = document.getElementById('ics-refresh-calendar');
+    if (btn) {
+      btn.classList.add('visible');
+    }
+  }
+
   private async processNext() {
     if (this.isProcessing) return;
 
@@ -107,6 +114,7 @@ class QueueManager {
           (response: any) => {
             if (response?.success) {
               this.updateTask(task, 'success', `Added ${events.length} events`);
+              this.showRefreshButton();
             } else {
               this.updateTask(
                 task,
@@ -264,6 +272,7 @@ function injectUI() {
                 <div class="header-main">
                     <h3>Upload Queue</h3>
                     <button id="ics-clear-completed" title="Clear completed tasks">Clear</button>
+                    <button id="ics-refresh-calendar" title="Refresh page to see new events">Sync</button>
                 </div>
                 <button id="ics-queue-close">×</button>
             </div>
@@ -280,6 +289,12 @@ function injectUI() {
       .getElementById('ics-clear-completed')
       ?.addEventListener('click', () => {
         queueManager.clearCompletedTasks();
+      });
+
+    document
+      .getElementById('ics-refresh-calendar')
+      ?.addEventListener('click', () => {
+        window.location.reload();
       });
   }
 
