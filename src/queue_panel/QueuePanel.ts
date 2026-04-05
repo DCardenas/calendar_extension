@@ -1,4 +1,5 @@
 import { QueueManager } from '../QueueManager';
+import { TaskItem } from '../task/TaskItem';
 import { Toast } from '../toast/Toast';
 import { Header } from './Header';
 
@@ -15,8 +16,23 @@ export class QueuePanel {
   }) {
     this.el = this.createQueuePanel({ toast, queueManager });
 
-    queueManager.newTasksSignal.attach(() => {
+    const queueList = document.createElement('div');
+    queueList.id = 'ics-queue-list';
+    this.el.appendChild(queueList);
+
+    queueManager.newTasksSignal.attach((task) => {
+      const taskView = new TaskItem({
+        task,
+        removeTask: queueManager.removeTask,
+      });
+      queueList.appendChild(taskView.el);
       this.show();
+    });
+
+    queueManager.tasksUpdatedSignal.attach((tasks) => {
+      if (tasks.length === 0) {
+        this.hide();
+      }
     });
   }
 
@@ -49,10 +65,6 @@ export class QueuePanel {
 
     const header = new Header({ queuePanel: this, toast, queueManager });
     queuePanel.appendChild(header.el);
-
-    const queueList = document.createElement('div');
-    queueList.id = 'ics-queue-list';
-    queuePanel.appendChild(queueList);
 
     return queuePanel;
   }

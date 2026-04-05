@@ -1,4 +1,5 @@
-import { QueueManager, TaskStatus } from '../QueueManager';
+import { QueueManager } from '../QueueManager';
+import { TaskStatus } from '../task/Task';
 
 export class HeaderMain {
   readonly el: HTMLDivElement;

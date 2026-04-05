@@ -2,6 +2,7 @@ import { DropZone } from './src/DropZone';
 import { QueueManager } from './src/QueueManager';
 import { setupDragAndDrop } from './src/drag_and_drop';
 import { QueuePanel } from './src/queue_panel/QueuePanel';
+import { TaskItem } from './src/task/TaskItem';
 import { Toast } from './src/toast/Toast';
 
 function injectUi() {
