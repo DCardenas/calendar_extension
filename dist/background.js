@@ -33,18 +33,21 @@
   var require_background = __commonJS({
     "background.ts"() {
       init_events();
-      chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
+      chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
         if (request.action !== UploadActionEvent.action) return false;
-        try {
-          const token = await fetchAuthToken();
-          await handleUploadEvents(token, request.events);
-          sendResponse(new UploadResponse({ success: true }));
-        } catch (err) {
-          console.error("Upload Error:", err);
-          sendResponse(new UploadResponse({ success: false, error: err.message }));
-        }
+        attemptUpload(request.events, sendResponse);
         return true;
       });
+      async function attemptUpload(events, responder) {
+        try {
+          const token = await fetchAuthToken();
+          await handleUploadEvents(token, events);
+          responder(new UploadResponse({ success: true }));
+        } catch (err) {
+          console.error("Upload Error:", err);
+          responder(new UploadResponse({ success: false, error: err.message }));
+        }
+      }
       async function handleUploadEvents(token, events) {
         for (const event of events) {
           const response = await saveEvent(token, event);

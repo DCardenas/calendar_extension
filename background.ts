@@ -4,21 +4,28 @@ import {
   UploadResponse,
 } from './src/events';
 
-chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.action !== UploadActionEvent.action) return false;
 
-  try {
-    const token = await fetchAuthToken();
-    await handleUploadEvents(token, request.events);
-    sendResponse(new UploadResponse({ success: true }));
-  } catch (err: any) {
-    console.error('Upload Error:', err);
-    sendResponse(new UploadResponse({ success: false, error: err.message }));
-  }
+  attemptUpload(request.events, sendResponse);
 
   // Return true to indicate we will sendResponse asynchronously
   return true;
 });
+
+async function attemptUpload(
+  events: CalendarEventData[],
+  responder: (response: UploadResponse) => void,
+) {
+  try {
+    const token = await fetchAuthToken();
+    await handleUploadEvents(token, events);
+    responder(new UploadResponse({ success: true }));
+  } catch (err: any) {
+    console.error('Upload Error:', err);
+    responder(new UploadResponse({ success: false, error: err.message }));
+  }
+}
 
 async function handleUploadEvents(token: string, events: CalendarEventData[]) {
   for (const event of events) {
