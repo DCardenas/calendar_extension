@@ -1,26 +1,15 @@
 import { CalendarEventData, UploadActionEvent, UploadResponse } from './events';
-
-declare var ICAL: {
-  parse(icsData: string): any;
-  Component: any;
-  Event: any;
-};
+import { parseICS } from './ics/parse';
+import { Signal } from './signal/Signal';
 
 export class QueueManager {
   private tasks: QueueTask[] = [];
   private isProcessing: boolean = false;
   public needsSync: boolean = false;
 
-  private syncListeners: ((needsSync: boolean) => void)[] = [];
-  private newTasksListeners: (() => void)[] = [];
-
-  addSyncListener(listener: (needsSync: boolean) => void) {
-    this.syncListeners.push(listener);
-  }
-
-  addNewTasksListener(listener: () => void) {
-    this.newTasksListeners.push(listener);
-  }
+  readonly newTasksSignal = new Signal();
+  readonly syncSignal = new Signal<boolean>();
+  readonly tasksUpdatedSignal = new Signal<QueueTask[]>();
 
   addFiles(files: FileList | File[]) {
     const newTasks: QueueTask[] = [];
@@ -40,14 +29,17 @@ export class QueueManager {
     }
 
     if (newTasks.length > 0) {
-      this.newTasksListeners.forEach((listener) => listener());
+      this.newTasksSignal.emit();
       this.processNext();
     }
   }
 
   clearCompletedTasks() {
     this.tasks = this.tasks.filter((task) => {
-      if (task.status === 'success' || task.status === 'error') {
+      if (
+        task.status === TaskStatus.SUCCESS ||
+        task.status === TaskStatus.ERROR
+      ) {
         if (task.element) {
           task.element.remove();
         }
@@ -55,42 +47,36 @@ export class QueueManager {
       }
       return true;
     });
-    this.updateHeaderVisibility();
+
+    this.tasksUpdatedSignal.emit(this.tasks);
   }
 
   removeTask(taskId: string) {
     const index = this.tasks.findIndex((t) => t.id === taskId);
     if (index !== -1) {
       const task = this.tasks[index];
-      if (task.status === 'success' || task.status === 'error') {
+      if (
+        task.status === TaskStatus.SUCCESS ||
+        task.status === TaskStatus.ERROR
+      ) {
         if (task.element) {
           task.element.remove();
         }
         this.tasks.splice(index, 1);
-        this.updateHeaderVisibility();
+        this.tasksUpdatedSignal.emit(this.tasks);
       }
     }
   }
 
   setNeedsSync(needsSync: boolean) {
     this.needsSync = needsSync;
-    this.syncListeners.forEach((listener) => listener(this.needsSync));
-  }
-
-  updateHeaderVisibility() {
-    const clearBtn = document.getElementById('ics-clear-completed');
-    if (clearBtn) {
-      const hasCompleted = this.tasks.some(
-        (t) => t.status === 'success' || t.status === 'error',
-      );
-      clearBtn.style.display = hasCompleted ? 'inline-block' : 'none';
-    }
+    this.syncSignal.emit(this.needsSync);
   }
 
   private async processNext() {
     if (this.isProcessing) return;
 
-    const nextTask = this.tasks.find((t) => t.status === 'pending');
+    const nextTask = this.tasks.find((t) => t.status === TaskStatus.PENDING);
     if (!nextTask) {
       // Check if all are done to potentially hide panel after a delay
       return;
@@ -108,7 +94,7 @@ export class QueueManager {
 
     try {
       const text = await this.readFile(task.file);
-      const events = this.parseICS(text);
+      const events = parseICS(text);
 
       if (events.length === 0) {
         throw new Error('No events found');
@@ -186,7 +172,7 @@ export class QueueManager {
       } else {
         task.element.classList.remove('completed');
       }
-      this.updateHeaderVisibility();
+      this.tasksUpdatedSignal.emit(this.tasks);
     }
   }
 
@@ -225,40 +211,9 @@ export class QueueManager {
       reader.readAsText(file);
     });
   }
-
-  private parseICS(icsData: string): CalendarEventData[] {
-    const jcalData = ICAL.parse(icsData);
-    const comp = new ICAL.Component(jcalData);
-    const vevents = comp.getAllSubcomponents('vevent');
-
-    const events: CalendarEventData[] = [];
-    for (const vevent of vevents) {
-      const event = new ICAL.Event(vevent);
-      const calendarEvent: Partial<CalendarEventData> = {
-        summary: event.summary || 'Untitled Event',
-      };
-      if (event.description) calendarEvent.description = event.description;
-      if (event.location) calendarEvent.location = event.location;
-      if (event.startDate.isDate) {
-        const startStr = String(event.startDate).split('T')[0];
-        const endStr = String(event.endDate).split('T')[0];
-        calendarEvent.start = { date: startStr };
-        calendarEvent.end = { date: endStr };
-      } else {
-        calendarEvent.start = {
-          dateTime: event.startDate.toJSDate().toISOString(),
-        };
-        calendarEvent.end = {
-          dateTime: event.endDate.toJSDate().toISOString(),
-        };
-      }
-      events.push(calendarEvent as CalendarEventData);
-    }
-    return events;
-  }
 }
 
-enum TaskStatus {
+export enum TaskStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',
   SUCCESS = 'success',

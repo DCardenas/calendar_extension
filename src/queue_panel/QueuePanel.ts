@@ -15,7 +15,7 @@ export class QueuePanel {
   }) {
     this.el = this.createQueuePanel({ toast, queueManager });
 
-    queueManager.addNewTasksListener(() => {
+    queueManager.newTasksSignal.attach(() => {
       this.show();
     });
   }
