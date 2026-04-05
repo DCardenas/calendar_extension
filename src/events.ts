@@ -7,6 +7,7 @@ export interface CalendarEventData {
 }
 
 export class UploadActionEvent {
+  readonly action = 'UPLOAD_EVENTS';
   constructor(readonly events: CalendarEventData[]) {}
 
   static readonly action = 'UPLOAD_EVENTS';

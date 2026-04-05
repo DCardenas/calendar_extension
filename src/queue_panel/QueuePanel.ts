@@ -1,30 +1,53 @@
+import { QueueManager } from '../QueueManager';
 import { Toast } from '../toast/Toast';
 import { Header } from './Header';
 
 export class QueuePanel {
-  private readonly el: HTMLDivElement;
+  readonly el: HTMLDivElement;
   private _needsSync: boolean = false;
 
-  constructor({ toast }: { toast: Toast }) {
-    const existing = document.getElementById(ID);
-    if (existing) {
-      this.el = existing as HTMLDivElement;
-      return;
-    }
+  constructor({
+    toast,
+    queueManager,
+  }: {
+    toast: Toast;
+    queueManager: QueueManager;
+  }) {
+    this.el = this.createQueuePanel({ toast, queueManager });
 
-    this.el = this.createQueuePanel({ toast });
+    queueManager.addNewTasksListener(() => {
+      this.show();
+    });
   }
 
   get needsSync(): boolean {
-    return this.needsSync;
+    return this._needsSync;
   }
 
-  private createQueuePanel({ toast }: { toast: Toast }): HTMLDivElement {
+  setNeedsSync(needsSync: boolean) {
+    this._needsSync = needsSync;
+  }
+
+  show() {
+    this.el.classList.add('visible');
+  }
+
+  hide() {
+    this.el.classList.remove('visible');
+  }
+
+  private createQueuePanel({
+    toast,
+    queueManager,
+  }: {
+    toast: Toast;
+    queueManager: QueueManager;
+  }): HTMLDivElement {
     const queuePanel = document.createElement('div');
     queuePanel.id = ID;
     document.body.appendChild(queuePanel);
 
-    const header = new Header({ queuePanel: this, toast });
+    const header = new Header({ queuePanel: this, toast, queueManager });
     queuePanel.appendChild(header.el);
 
     const queueList = document.createElement('div');

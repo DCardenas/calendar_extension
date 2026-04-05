@@ -52,6 +52,7 @@
           this.events = events;
         }
         events;
+        action = "UPLOAD_EVENTS";
         static action = "UPLOAD_EVENTS";
       };
     }
@@ -324,21 +325,18 @@
       "use strict";
       HeaderMain = class {
         el;
-        constructor({ queuePanel, toast }) {
+        constructor() {
           this.el = document.createElement("div");
           this.el.id = "header-main";
           this.el.classList.add("header-main");
           this.el.innerHTML = `<h3>Upload Queue</h3>`;
-          this.addClearButton(queuePanel, toast);
+          this.addClearButton();
           this.addRefreshButton();
         }
-        addClearButton(queuePanel, toast) {
+        addClearButton() {
           const clearButton = new ClearButton({
             onclick: () => {
               this.el.classList.remove("visible");
-              if (queuePanel.needsSync) {
-                toast.show();
-              }
             }
           });
           this.el.appendChild(clearButton.el);
@@ -386,12 +384,15 @@
           this.el = document.createElement("div");
           this.el.id = "ics-queue-header";
           this.el.classList.add("queue-header");
-          const headerMain = new HeaderMain({ queuePanel, toast });
+          const headerMain = new HeaderMain();
           this.el.appendChild(headerMain.el);
           const closeButton = new CloseButton();
           this.el.appendChild(closeButton.el);
           closeButton.el.addEventListener("click", () => {
-            this.el.classList.remove("visible");
+            queuePanel.el.classList.remove("visible");
+            if (queuePanel.needsSync) {
+              toast.show();
+            }
           });
         }
       };

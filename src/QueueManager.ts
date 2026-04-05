@@ -11,6 +11,17 @@ export class QueueManager {
   private isProcessing: boolean = false;
   public needsSync: boolean = false;
 
+  private syncListeners: ((needsSync: boolean) => void)[] = [];
+  private newTasksListeners: (() => void)[] = [];
+
+  addSyncListener(listener: (needsSync: boolean) => void) {
+    this.syncListeners.push(listener);
+  }
+
+  addNewTasksListener(listener: () => void) {
+    this.newTasksListeners.push(listener);
+  }
+
   addFiles(files: FileList | File[]) {
     const newTasks: QueueTask[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -29,7 +40,7 @@ export class QueueManager {
     }
 
     if (newTasks.length > 0) {
-      this.showPanel();
+      this.newTasksListeners.forEach((listener) => listener());
       this.processNext();
     }
   }
@@ -61,12 +72,9 @@ export class QueueManager {
     }
   }
 
-  showRefreshButton() {
-    this.needsSync = true;
-    const btn = document.getElementById('ics-refresh-calendar');
-    if (btn) {
-      btn.classList.add('visible');
-    }
+  setNeedsSync(needsSync: boolean) {
+    this.needsSync = needsSync;
+    this.syncListeners.forEach((listener) => listener(this.needsSync));
   }
 
   updateHeaderVisibility() {
@@ -122,7 +130,6 @@ export class QueueManager {
                 TaskStatus.SUCCESS,
                 `Added ${events.length} events`,
               );
-              this.showRefreshButton();
             } else {
               this.updateTask(
                 task,
@@ -208,11 +215,6 @@ export class QueueManager {
     });
 
     container.appendChild(taskEl);
-  }
-
-  private showPanel() {
-    const panel = document.getElementById('ics-queue-panel');
-    if (panel) panel.classList.add('visible');
   }
 
   private readFile(file: File): Promise<string> {

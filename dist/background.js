@@ -18,6 +18,7 @@
           this.events = events;
         }
         events;
+        action = "UPLOAD_EVENTS";
         static action = "UPLOAD_EVENTS";
       };
       UploadResponse = class {
