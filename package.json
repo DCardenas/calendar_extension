@@ -2,7 +2,10 @@
   "name": "calendar_extension",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc",
+    "build": "yarn build:content && yarn build:background",
+    "build:content": "esbuild content.ts --bundle --outfile=dist/content.js --target=es2022 --format=iife",
+    "build:background": "esbuild background.ts --bundle --outfile=dist/background.js --target=es2022 --format=iife",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "description": "",
@@ -14,6 +17,7 @@
   "devDependencies": {
     "@types/chrome": "^0.1.38",
     "@types/ical": "^0.8.3",
+    "esbuild": "^0.28.0",
     "typescript": "^6.0.2"
   }
 }

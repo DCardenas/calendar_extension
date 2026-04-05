@@ -1,45 +1,92 @@
 "use strict";
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'UPLOAD_EVENTS') {
-        handleUploadEvents(request.events)
-            .then(() => sendResponse({ success: true }))
-            .catch((err) => {
-            console.error('Upload Error:', err);
-            sendResponse({ success: false, error: err.message });
-        });
-        // Return true to indicate we will sendResponse asynchronously
-        return true;
-    }
-});
-async function handleUploadEvents(events) {
-    // 1. Get Auth Token
-    const token = await new Promise((resolve, reject) => {
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-            if (chrome.runtime.lastError || !token) {
-                reject(new Error(chrome.runtime.lastError?.message ||
-                    'Authentication failed. Make sure your OAuth Client ID is configured.'));
-            }
-            else {
-                resolve(token);
-            }
-        });
-    });
-    // 2. Upload Events to Google Calendar sequentially
-    for (const event of events) {
-        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(event),
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Failed to create event:', errorText);
-            throw new Error(`Calendar API Error: ${response.statusText} - ${errorText}`);
+(() => {
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __esm = (fn, res) => function __init() {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  };
+  var __commonJS = (cb, mod) => function __require() {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  };
+
+  // src/events.ts
+  var UploadActionEvent, UploadResponse;
+  var init_events = __esm({
+    "src/events.ts"() {
+      "use strict";
+      UploadActionEvent = class {
+        constructor(events) {
+          this.events = events;
         }
-        // Brief delay to mitigate rate limiting if uploading multiple events
-        await new Promise((res) => setTimeout(res, 250));
+        events;
+        static action = "UPLOAD_EVENTS";
+      };
+      UploadResponse = class {
+        constructor(options) {
+          this.options = options;
+        }
+        options;
+      };
     }
-}
+  });
+
+  // background.ts
+  var require_background = __commonJS({
+    "background.ts"() {
+      init_events();
+      chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
+        if (request.action !== UploadActionEvent.action) return false;
+        try {
+          const token = await fetchAuthToken();
+          await handleUploadEvents(token, request.events);
+          sendResponse(new UploadResponse({ success: true }));
+        } catch (err) {
+          console.error("Upload Error:", err);
+          sendResponse(new UploadResponse({ success: false, error: err.message }));
+        }
+        return true;
+      });
+      async function handleUploadEvents(token, events) {
+        for (const event of events) {
+          const response = await saveEvent(token, event);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Failed to create event:", errorText);
+            throw new Error(
+              `Calendar API Error: ${response.statusText} - ${errorText}`
+            );
+          }
+          await new Promise((res) => setTimeout(res, RATE_LIMIT_DELAY_MS));
+        }
+      }
+      var FETCH_EVENTS_URI = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+      async function saveEvent(token, event) {
+        const response = await fetch(FETCH_EVENTS_URI, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(event)
+        });
+        return response;
+      }
+      var RATE_LIMIT_DELAY_MS = 250;
+      async function fetchAuthToken() {
+        return new Promise((resolve, reject) => {
+          chrome.identity.getAuthToken({ interactive: true }, (token) => {
+            if (chrome.runtime.lastError || !token) {
+              reject(
+                new Error(
+                  chrome.runtime.lastError?.message || "Authentication failed. Make sure your OAuth Client ID is configured."
+                )
+              );
+            } else {
+              resolve(token);
+            }
+          });
+        });
+      }
+    }
+  });
+  require_background();
+})();
