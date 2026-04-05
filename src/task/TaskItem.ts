@@ -100,7 +100,7 @@ const HTML_TEMPLATE = (task: Task) => `
     <div class="task-icon">📅</div>
     <div class="task-details">
         <div class="task-name">${task.file.name}</div>
-        <div class="task-message">${task.message}</div>
+        <div class="task-message">Waiting...</div>
     </div>
     <div class="task-action">
         <button class="task-status-btn pending" title="Clear task" disabled></button>

@@ -5,7 +5,6 @@ import { Signal } from '../signal/Signal';
 export class Task {
   readonly id: string;
   private _status: TaskStatus;
-  private _message: string;
 
   readonly taskStatusChanged: Signal<{
     status: TaskStatus;
@@ -17,20 +16,15 @@ export class Task {
   constructor(readonly file: File) {
     this.id = Math.random().toString(36).slice(2, 9);
     this._status = TaskStatus.PENDING;
-    this._message = 'Waiting...';
   }
 
   get status() {
     return this._status;
   }
 
-  get message() {
-    return this._message;
-  }
-
   updateStatus(status: TaskStatus, message: string) {
     this._status = status;
-    this._message = message;
+
     this.taskStatusChanged.emit({ status, message });
   }
 
