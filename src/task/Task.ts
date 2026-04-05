@@ -15,7 +15,7 @@ export class Task {
   readonly taskRemoved: Signal<void> = new Signal();
 
   constructor(readonly file: File) {
-    this.id = Math.random().toString(36).substr(2, 9);
+    this.id = Math.random().toString(36).slice(2, 9);
     this._status = TaskStatus.PENDING;
     this._message = 'Waiting...';
   }
