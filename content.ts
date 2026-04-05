@@ -8,7 +8,7 @@ function injectUi() {
   const queueManager = new QueueManager();
   const dropZone = new DropZone();
   const toast = new Toast();
-  new QueuePanel({ toast });
+  new QueuePanel({ toast, queueManager });
 
   setupDragAndDrop(dropZone, queueManager);
 }
