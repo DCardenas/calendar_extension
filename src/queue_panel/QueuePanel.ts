@@ -5,7 +5,6 @@ import { Header } from './Header';
 
 export class QueuePanel {
   readonly el: HTMLDivElement;
-  private _needsSync: boolean = false;
 
   constructor({
     toast,
@@ -23,25 +22,11 @@ export class QueuePanel {
     queueManager.newTasksSignal.attach((task) => {
       const taskView = new TaskItem({
         task,
-        removeTask: queueManager.removeTask,
+        removeTask: () => queueManager.removeTask(task.id),
       });
       queueList.appendChild(taskView.el);
       this.show();
     });
-
-    queueManager.tasksUpdatedSignal.attach((tasks) => {
-      if (tasks.length === 0) {
-        this.hide();
-      }
-    });
-  }
-
-  get needsSync(): boolean {
-    return this._needsSync;
-  }
-
-  setNeedsSync(needsSync: boolean) {
-    this._needsSync = needsSync;
   }
 
   show() {

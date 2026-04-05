@@ -35,7 +35,7 @@ export function setupDragAndDrop(
 
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
-      queueManager.addFiles(files);
+      queueManager.processFiles(files);
     }
   });
 }

@@ -7,10 +7,10 @@ export class QueueManager {
   public needsSync: boolean = false;
 
   readonly newTasksSignal = new Signal<Task>();
-  readonly syncSignal = new Signal<boolean>();
+  readonly syncSignal = new Signal();
   readonly tasksUpdatedSignal = new Signal<Task[]>();
 
-  addFiles(files: FileList | File[]) {
+  processFiles(files: FileList | File[]) {
     const newTasks: Task[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -19,7 +19,7 @@ export class QueueManager {
 
       const task = new Task(file);
 
-      this.tasks.push(task);
+      this.addTask(task);
       newTasks.push(task);
     }
 
@@ -59,9 +59,14 @@ export class QueueManager {
     }
   }
 
-  setNeedsSync(needsSync: boolean) {
-    this.needsSync = needsSync;
-    this.syncSignal.emit(this.needsSync);
+  setNeedsSync() {
+    this.needsSync = true;
+    this.syncSignal.emit();
+  }
+
+  private addTask(task: Task) {
+    this.tasks.push(task);
+    this.tasksUpdatedSignal.emit(this.tasks);
   }
 
   private async processNext() {
@@ -73,6 +78,10 @@ export class QueueManager {
     this.isProcessing = true;
     await nextTask.process();
     this.isProcessing = false;
+
+    if (nextTask.status === TaskStatus.SUCCESS) {
+      this.setNeedsSync();
+    }
 
     this.processNext();
   }

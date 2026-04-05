@@ -26,9 +26,6 @@ export class Toast {
 
   show() {
     this.el.classList.add('visible');
-    setTimeout(() => {
-      this.el.classList.remove('visible');
-    }, 3000);
   }
 
   hide() {

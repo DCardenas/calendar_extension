@@ -26,7 +26,8 @@ export class Header {
     this.el.appendChild(closeButton.el);
     closeButton.el.addEventListener('click', () => {
       queuePanel.hide();
-      if (queuePanel.needsSync) {
+
+      if (queueManager.needsSync) {
         toast.show();
       }
     });

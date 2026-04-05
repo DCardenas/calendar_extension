@@ -51,13 +51,7 @@ class ClearButton {
     this.el.addEventListener('click', onclick);
 
     queueManager.tasksUpdatedSignal.attach((tasks) => {
-      this.el.style.display = tasks.some(
-        (task) =>
-          task.status === TaskStatus.SUCCESS ||
-          task.status === TaskStatus.ERROR,
-      )
-        ? 'inline-block'
-        : 'none';
+      this.el.style.display = tasks.length > 0 ? 'inline-block' : 'none';
     });
   }
 }
@@ -71,10 +65,8 @@ class RefreshButton {
     this.el.textContent = 'Sync';
     this.el.title = 'Refresh page to see new events';
 
-    queueManager.syncSignal.attach((needsSync) => {
-      needsSync
-        ? this.el.classList.add('visible')
-        : this.el.classList.remove('visible');
+    queueManager.syncSignal.attach(() => {
+      this.el.classList.add('visible');
     });
   }
 }

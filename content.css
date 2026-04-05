@@ -483,6 +483,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-right: 8px;
 }
 
 #ics-sync-now:hover {
@@ -506,4 +507,13 @@
 #ics-sync-dismiss:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #f1f5f9;
+}
+
+@keyframes rotateStatus {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
